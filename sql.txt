@@ -1,0 +1,101 @@
+CREATE TABLE BANKACCOUNT (
+    ACCOUNT_NUMBER NUMBER PRIMARY KEY,
+    HOLDER_NAME    VARCHAR2(50),
+    BALANCE        NUMBER
+);
+
+------------------------------------------------------------------------------------------------
+
+CREATE TABLE transaction_log (
+    txn_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    account_number VARCHAR2(50),
+    txn_time DATE DEFAULT SYSDATE,
+    CONSTRAINT fk_ac_no FOREIGN KEY (account_number)
+        REFERENCES BANKACCOUNT(ACCOUNT_NUMBER)
+);
+
+alter table TRANSACTION_LOG MODIFY TXN_TIME TIMESTAMP DEFAULT SYSTIMESTAMP;
+
+------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE TRIGGER update_txn_log
+AFTER INSERT OR UPDATE ON BANKACCOUNT
+FOR EACH ROW
+DECLARE
+    txn_type VARCHAR2(20);
+    amount   NUMBER;
+BEGIN
+    -- Calculate transaction amount
+    amount := NVL(:old.balance, 0) - NVL(:new.balance, 0);
+
+    -- Determine transaction type
+    IF amount > 0 THEN
+        txn_type := 'withdraw';
+    ELSE
+        txn_type := 'deposit';
+    END IF;
+
+    -- Insert into transaction log
+    INSERT INTO transaction_log (
+        account_number,
+        txn_time,
+        txn_type,
+        amount
+    ) VALUES (
+        :new.account_number,
+        SYSTIMESTAMP,
+        txn_type,
+        ABS(amount)
+    );
+END;
+/
+
+------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE PROCEDURE deposit (
+    p_ac_no  IN BANKACCOUNT.ACCOUNT_NUMBER%TYPE,
+    p_amount IN NUMBER
+)
+IS
+BEGIN
+    UPDATE BANKACCOUNT
+    SET BALANCE = BALANCE + p_amount
+    WHERE ACCOUNT_NUMBER = p_ac_no;
+
+    DBMS_OUTPUT.PUT_LINE('Deposited ' || p_amount || ' to account ' || p_ac_no);
+END;
+
+Use: 
+CALL deposit(12345, 500);
+OR --------------------------------------
+BEGIN
+    deposit(12345, 500);
+END;
+/
+
+
+------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION get_balance (
+    p_ac_no IN BANKACCOUNT.ACCOUNT_NUMBER%TYPE
+)
+RETURN BANKACCOUNT.BALANCE%TYPE
+IS
+    v_balance BANKACCOUNT.BALANCE%TYPE;
+BEGIN
+    SELECT BALANCE INTO v_balance
+    FROM BANKACCOUNT
+    WHERE ACCOUNT_NUMBER = p_ac_no;
+    RETURN v_balance;
+END;
+
+SELECT get_balance(12345) FROM dual;
+// Here, dual is just a dummy table to satisfy SQL syntax.
+OR---------------------------------------
+DECLARE
+    v NUMBER;
+BEGIN
+    v := get_balance(12345);
+    DBMS_OUTPUT.PUT_LINE(v);
+END;
+

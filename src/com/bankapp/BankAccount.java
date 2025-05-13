@@ -42,12 +42,20 @@ public class BankAccount {
         return balance;
     }
 
-    // Deposit money
+    // Deposit money using procedure
     public void deposit(double amount) {
         if (amount > 0) {
-            balance += amount;
-            updateBalance();
-            System.out.println("Deposited: " + amount + " | New Balance: " + balance);
+            try (Connection connection = DBUtil.getConnection();
+                 CallableStatement stmt = connection.prepareCall("{call deposit(?,?)}");
+            ) {
+                stmt.setString(1, accountNumber);
+                stmt.setDouble(2, amount);
+                stmt.execute();
+                System.out.println("Deposited: " + amount);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         } else {
             System.out.println("Invalid deposit amount.");
         }
