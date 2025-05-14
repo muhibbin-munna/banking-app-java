@@ -99,3 +99,36 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE(v);
 END;
 
+------------------------------------------------------------------------------------------
+nano backup.sh
+---------------------
+#!/bin/bash
+
+# Set variables
+BACKUP_SOURCE="/home/your_username/data"
+BACKUP_DEST="/home/your_username/backups"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+FILENAME="backup_$TIMESTAMP.tar.gz"
+
+# Create backup directory if it doesn't exist
+mkdir -p "$BACKUP_DEST"
+
+# Create the backup
+tar -czvf "$BACKUP_DEST/$FILENAME" "$BACKUP_SOURCE"
+
+echo "Backup completed successfully: $FILENAME"
+---------------
+chmod +x backup.sh
+---------------
+./backup.sh
+---------------------
+crontab -e
+add this line ----- 0 15 * * * /path/to/backup.sh
+-----------------------------------------------------------------
+javac BankingApp.java
+--------------------------
+jar cfe BankingApp.jar BankingApp BankingApp.class
+--------------
+java -jar BankingApp.jar
+
+
